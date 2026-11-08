@@ -1,0 +1,13 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Primora.Api/Primora.Api.csproj" />
+    <Project Path="src/Primora.Application/Primora.Application.csproj" />
+    <Project Path="src/Primora.Domain/Primora.Domain.csproj" />
+    <Project Path="src/Primora.Importador/Primora.Importador.csproj" />
+    <Project Path="src/Primora.Infrastructure/Primora.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Primora.IntegrationTests/Primora.IntegrationTests.csproj" />
+    <Project Path="tests/Primora.UnitTests/Primora.UnitTests.csproj" />
+  </Folder>
+</Solution>

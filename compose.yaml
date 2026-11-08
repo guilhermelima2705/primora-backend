@@ -1,0 +1,33 @@
+name: primora-backend
+services:
+  postgres:
+    image: postgres:18@sha256:e3d24f6906d0760bf4da0dae872415391ededefad23fd471c47dc53b0ddf3c42
+    container_name: primora-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: primora_admin
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD_FILE: /run/secrets/postgres_admin_password
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - primora_postgres_data:/var/lib/postgresql
+      - ./infra/postgres/init:/docker-entrypoint-initdb.d:ro
+    secrets:
+      - postgres_admin_password
+      - primora_app_password
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U primora_admin -d postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 15s
+secrets:
+  postgres_admin_password:
+    file: ./.secrets/postgres_admin_password
+  primora_app_password:
+    file: ./.secrets/primora_app_password
+volumes:
+  primora_postgres_data:
+    name: primora_postgres_data
