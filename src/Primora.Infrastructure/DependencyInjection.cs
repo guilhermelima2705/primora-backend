@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Npgsql;
+using Primora.Application.Dataset;
 using Primora.Application.Health;
 using Primora.Application.Importacao;
 using Primora.Infrastructure.Importacao;
@@ -31,6 +32,13 @@ public static class DependencyInjection
         });
         services.AddScoped<IDatabaseAvailability, PostgresDatabaseAvailability>();
         services.AddScoped<IDatasetImportador, EfDatasetImportador>();
+        services.AddOptions<DatasetPublicacaoOptions>()
+            .BindConfiguration("DatasetPublicacao")
+            .Validate(options => options.HashSha256.Length == 64 &&
+                options.HashSha256.All(character => character is >= '0' and <= '9' or >= 'a' and <= 'f'),
+                "Configure DatasetPublicacao:HashSha256 com o SHA-256 em minúsculas da versão publicada.")
+            .ValidateOnStart();
+        services.AddScoped<IDatasetConsultas, EfDatasetConsultas>();
         return services;
     }
 }
