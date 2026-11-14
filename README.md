@@ -399,3 +399,29 @@ foreach ($secretName in @('postgres_admin_password', 'primora_app_password')) {
 Restrinja o acesso dessa pasta ao usuário local. Depois siga os comandos já documentados para iniciar seu banco, configurar os User Secrets, restaurar a solução e aplicar a migration. Os scripts de inicialização do PostgreSQL só rodam em um volume novo: para um volume já existente, preserve as senhas atuais. Esta etapa de Git não alterou o banco nem gerou novas credenciais.
 
 O dataset oficial continua no frontend separado; cada integrante deve obter o arquivo fornecido para a atividade e informar seu caminho ao importador. Os dados já importados no computador do autor não são distribuídos pelo Git.
+
+
+## Sprint 6 — Endpoints do painel
+
+- `GET /unidades` retorna o array de unidades com indicadores agregados, distribuições, séries e fatores de risco.
+- `GET /clientes` retorna o array de clientes detalhados com histórico de saúde e eventos.
+- Ambos consultam o PostgreSQL em modo de leitura e servem apenas a versão cujo SHA-256 está em `DatasetPublicacao:HashSha256`. O padrão é o hash do dataset acadêmico importado na Etapa 3. Em outro ambiente, use `DatasetPublicacao__HashSha256` para publicar outra versão já importada. Se o hash não existir no banco, ambas as rotas retornam `[]`.
+- Quando a versão existe, `X-Dataset-Gerado-Em` informa a data original `YYYY-MM-DD`. Datas e horários de eventos são enviados sem deslocamento de fuso. Eventos sem valor omitem a propriedade `valor`; zero é preservado.
+- Em Development, o CORS permite `http://localhost:5173` e `http://127.0.0.1:5173`. Em produção, configure `Cors__AllowedOrigins__0` com a origem HTTPS exata do frontend, sem barra final. Adicione outras origens autorizadas por índice, quando necessário. A política expõe `X-Dataset-Gerado-Em` e permite GET sem credenciais CORS.
+
+Com o Docker Desktop ativo, inicie o contêiner já configurado e execute na raiz do repositório:
+
+```powershell
+docker compose start
+. .\scripts\Set-PrimoraEnvironment.ps1
+dotnet run --project src/Primora.Api --launch-profile https
+```
+
+Em outro PowerShell 7.5 ou posterior, na raiz do repositório:
+
+```powershell
+Invoke-RestMethod https://localhost:7246/health
+.\scripts\Test-PrimoraDatasetApi.ps1 -DatasetPath '..\desafio-primora-painel-inteligencia\src\data\dataset_painel_multitenant.json'
+```
+
+O script compara as duas respostas com o JSON acadêmico, incluindo ordem dos arrays, campos aninhados, datas e valores numéricos. Para os testes automatizados da solução, carregue o ambiente com `Set-PrimoraEnvironment.ps1` e execute `dotnet test Primora.slnx`.
