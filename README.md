@@ -425,3 +425,38 @@ Invoke-RestMethod https://localhost:7246/health
 ```
 
 O script compara as duas respostas com o JSON acadêmico, incluindo ordem dos arrays, campos aninhados, datas e valores numéricos. Para os testes automatizados da solução, carregue o ambiente com `Set-PrimoraEnvironment.ps1` e execute `dotnet test Primora.slnx`.
+
+
+## Contêiner local da API
+
+O `Dockerfile` compila a API com o SDK do `global.json` e executa a publicação como usuário sem privilégios. O contêiner usa HTTP em `0.0.0.0` na porta `PORT` (padrão `10000`). Em hospedagem com TLS terminado pelo proxy, configure `Hosting__TlsTerminatedByProxy=true` para deixar o redirecionamento público a cargo do proxy. Os perfis HTTP e HTTPS locais continuam disponíveis pelo `dotnet run`.
+
+Para simular o Render usando o PostgreSQL local já configurado, com o Docker Desktop ativo:
+
+```powershell
+docker compose start
+docker build -t primora-api:render-local .
+. .\scripts\Set-PrimoraEnvironment.ps1
+$env:ConnectionStrings__Primora = $env:ConnectionStrings__Primora.Replace(
+    'Host=127.0.0.1;Port=5433;', 'Host=primora-postgres;Port=5432;')
+
+docker run --rm --name primora-api-render-local --memory 512m `
+    --network primora-backend_default -p 127.0.0.1:10000:10000 `
+    -e PORT=10000 -e ASPNETCORE_ENVIRONMENT=Production `
+    -e Hosting__TlsTerminatedByProxy=true `
+    -e Cors__AllowedOrigins__0=http://localhost:5173 `
+    -e ConnectionStrings__Primora primora-api:render-local
+```
+
+A conexão é passada pelo ambiente do terminal, sem incluir seu valor no comando ou na imagem. Feche esse terminal após o teste para descartar a configuração voltada ao contêiner.
+
+Em outro PowerShell 7.5 ou posterior, a partir da raiz do backend:
+
+```powershell
+Invoke-RestMethod 'http://127.0.0.1:10000/health'
+.\scripts\Test-PrimoraDatasetApi.ps1 -ApiBaseUrl 'http://127.0.0.1:10000' `
+    -DatasetPath '..\desafio-primora-painel-inteligencia\src\data\dataset_painel_multitenant.json'
+docker stats --no-stream primora-api-render-local
+```
+
+Encerre a API com Ctrl+C. O PostgreSQL local e seu volume continuam disponíveis. Para uso no futuro Render, configure os segredos no painel do serviço e forneça a origem HTTPS do frontend em `Cors__AllowedOrigins__0`.

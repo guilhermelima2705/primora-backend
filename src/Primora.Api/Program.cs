@@ -27,7 +27,9 @@ builder.Services.AddInfrastructure();
 var app = builder.Build();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
-if (!app.Environment.IsDevelopment())
+// O proxy gerenciado termina o TLS e redireciona o HTTP público.
+if (!app.Environment.IsDevelopment() &&
+    !app.Configuration.GetValue<bool>("Hosting:TlsTerminatedByProxy"))
 {
     app.UseHsts();
     app.UseHttpsRedirection();
